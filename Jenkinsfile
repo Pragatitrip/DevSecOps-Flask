@@ -1,12 +1,11 @@
 pipeline {
     agent any
 
-    stages {
-        stage('Build Docker Image') {
-            steps {
-                sh 'docker build -t devsecops-flask-app .'
-            }
-        }
+    stage('Build Docker Image') {
+    steps {
+        sh 'docker build -t devsecops-flask-app ./app'
+    }
+}
 
         stage('Trivy Security Scan') {
             steps {
