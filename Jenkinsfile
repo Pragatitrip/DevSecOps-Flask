@@ -1,15 +1,11 @@
 pipeline {
   agent any
 
-  environment {
-    IMAGE_NAME = "devsecops-flask-app"
-  }
-
   stages {
 
     stage('Checkout Code') {
       steps {
-        git 'https://github.com/Pragatitrip/DevSecOps-Flask.git'
+        git branch: 'main', url: 'https://github.com/Pragatitrip/DevSecOps-Flask.git'
       }
     }
 
