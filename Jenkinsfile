@@ -1,41 +1,81 @@
 pipeline {
-  agent any
+    agent any
 
-  stages {
-
-    stage('Checkout Code') {
-      steps {
-        git branch: 'main', url: 'https://github.com/Pragatitrip/DevSecOps-Flask.git'
-      }
+    environment {
+        SONAR_HOST_URL = "http://host.docker.internal:9000"
+        IMAGE_NAME = "devsecops-flask-app"
     }
 
-    stage('SonarQube Analysis (SAST)') {
-      environment {
-        SONAR_TOKEN = credentials('sonar-token')
-      }
-      steps {
-        sh '''
-          docker run --rm \
-            -v $(pwd):/usr/src \
-            sonarsource/sonar-scanner-cli \
-            -Dsonar.projectKey=devsecops-flask \
-            -Dsonar.sources=. \
-            -Dsonar.host.url=http://host.docker.internal:9000 \
-            -Dsonar.login=$SONAR_TOKEN
-        '''
-      }
+    stages {
+
+        stage('Checkout Code') {
+            steps {
+                git branch: 'main',
+                    url: 'https://github.com/Pragatitrip/DevSecOps-Flask.git'
+            }
+        }
+
+        stage('SonarQube SAST Analysis') {
+            environment {
+                SONAR_TOKEN = credentials('sonar-token')
+            }
+            steps {
+                sh '''
+                  docker run --rm \
+                    -v $(pwd):/usr/src \
+                    sonarsource/sonar-scanner-cli \
+                    -Dsonar.projectKey=devsecops-flask \
+                    -Dsonar.sources=. \
+                    -Dsonar.host.url=${SONAR_HOST_URL} \
+                    -Dsonar.login=$SONAR_TOKEN
+                '''
+            }
+        }
+
+        stage('SonarQube Quality Gate') {
+            steps {
+                timeout(time: 2, unit: 'MINUTES') {
+                    waitForQualityGate abortPipeline: true
+                }
+            }
+        }
+
+        stage('Build Docker Image') {
+            steps {
+                sh '''
+                  docker build -t ${IMAGE_NAME} ./app
+                '''
+            }
+        }
+
+        stage('OWASP Dependency Check (SCA)') {
+            steps {
+                sh '''
+                  docker run --rm \
+                    -v $(pwd):/src \
+                    owasp/dependency-check \
+                    --scan /src \
+                    --format HTML \
+                    --out /src/dependency-check-report
+                '''
+            }
+        }
+
+        stage('Trivy Image Scan') {
+            steps {
+                sh '''
+                  trivy image --severity HIGH,CRITICAL --exit-code 1 ${IMAGE_NAME}
+                '''
+            }
+        }
     }
 
-    stage('Build Docker Image') {
-      steps {
-        sh 'docker build -t devsecops-flask-app ./app'
-      }
+    post {
+        success {
+            echo "✅ Pipeline completed successfully — secure build ready!"
+        }
+        failure {
+            echo "❌ Pipeline failed due to security issues!"
+        }
     }
-
-    stage('Trivy Image Scan') {
-      steps {
-        sh 'trivy image devsecops-flask-app'
-      }
-    }
-  }
 }
