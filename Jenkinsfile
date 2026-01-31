@@ -3,6 +3,7 @@ pipeline {
 
     environment {
         IMAGE_NAME = "devsecops-flask-app"
+        SONAR_HOST_URL = "http://host.docker.internal:9000"
     }
 
     stages {
@@ -19,22 +20,21 @@ pipeline {
                 SONAR_TOKEN = credentials('sonar-token')
             }
             steps {
-                withSonarQubeEnv('SonarQube') {
-                    sh '''
-                      docker run --rm \
-                        -v $(pwd):/usr/src \
-                        sonarsource/sonar-scanner-cli \
-                        -Dsonar.projectKey=devsecops-flask \
-                        -Dsonar.sources=. \
-                        -Dsonar.login=$SONAR_TOKEN
-                    '''
-                }
+                sh '''
+                  docker run --rm \
+                    -v $(pwd):/usr/src \
+                    sonarsource/sonar-scanner-cli \
+                    -Dsonar.projectKey=devsecops-flask \
+                    -Dsonar.sources=. \
+                    -Dsonar.host.url=${SONAR_HOST_URL} \
+                    -Dsonar.login=$SONAR_TOKEN
+                '''
             }
         }
 
         stage('SonarQube Quality Gate') {
             steps {
-                timeout(time: 2, unit: 'MINUTES') {
+                timeout(time: 5, unit: 'MINUTES') {
                     waitForQualityGate abortPipeline: true
                 }
             }
@@ -54,7 +54,8 @@ pipeline {
                   rm -rf owasp-report
                   mkdir -p owasp-report
 
-                  docker run --rm -u root \
+                  docker run --rm \
+                    -u root \
                     -v $(pwd):/src \
                     -v dependency-check-data:/usr/share/dependency-check/data \
                     owasp/dependency-check \
