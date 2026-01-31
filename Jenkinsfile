@@ -5,6 +5,10 @@ pipeline {
         IMAGE_NAME = "devsecops-flask-app"
     }
 
+    tools {
+        sonarScanner 'SonarScanner'
+    }
+
     stages {
 
         stage('Checkout Code') {
