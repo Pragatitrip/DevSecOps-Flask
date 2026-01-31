@@ -48,7 +48,7 @@ pipeline {
                     -v $(pwd):/src \
                     -v dependency-check-data:/usr/share/dependency-check/data \
                     owasp/dependency-check \
-                    --scan /src/app \
+                    --scan /src \
                     --format HTML \
                     --out /src/dependency-check-report \
                     --disableAssembly \
