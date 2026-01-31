@@ -41,21 +41,22 @@ pipeline {
         }
 
         stage('OWASP Dependency Check (SCA)') {
-            steps {
-                sh '''
-                  docker run --rm \
-                    -v $(pwd):/src \
-                    -v dependency-check-data:/usr/share/dependency-check/data \
-                    owasp/dependency-check \
-                    --scan /src \
-                    --format HTML \
-                    --out /src/dependency-check-report \
-                    --disableAssembly \
-                    --failOnCVSS 11 \
-                    --noupdate || true
-                '''
-            }
-        }
+    steps {
+        sh '''
+          mkdir -p dependency-check-report
+
+          docker run --rm \
+            -v $(pwd):/src \
+            -v dependency-check-data:/usr/share/dependency-check/data \
+            owasp/dependency-check \
+            --scan /src \
+            --format HTML \
+            --out /src/dependency-check-report \
+            --disableAssembly \
+            --noupdate || true
+        '''
+    }
+}
 
         stage('Trivy Image Scan') {
             steps {
@@ -69,19 +70,18 @@ pipeline {
         }
     }
 
-    post {
-        always {
-            archiveArtifacts artifacts: 'dependency-check-report/*.html',
-                 fingerprint: true,
-                 allowEmptyArchive: true
-
-        }
-        success {
-            echo "✅ Pipeline completed successfully — secure build ready!"
-        }
-        failure {
-            echo "❌ Pipeline failed due to security issues!"
-        }
+   post {
+    always {
+        archiveArtifacts artifacts: 'dependency-check-report/*.html',
+                         allowEmptyArchive: true
     }
+    success {
+        echo '✅ Pipeline completed successfully — secure build ready!'
+    }
+    failure {
+        echo '❌ Pipeline failed due to security issues!'
+    }
+}
+
 }
 
