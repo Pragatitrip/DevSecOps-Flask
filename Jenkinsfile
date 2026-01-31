@@ -40,7 +40,7 @@ pipeline {
             }
         }
 
-        stage('OWASP Dependency Check (SCA)') {
+       stage('OWASP Dependency Check (SCA)') {
     steps {
         sh '''
           mkdir -p dependency-check-report
@@ -54,9 +54,12 @@ pipeline {
             --out /src/dependency-check-report \
             --disableAssembly \
             --noupdate || true
+
+          ls -l dependency-check-report || true
         '''
     }
 }
+
 
         stage('Trivy Image Scan') {
             steps {
@@ -72,8 +75,8 @@ pipeline {
 
    post {
     always {
-        archiveArtifacts artifacts: 'dependency-check-report/*.html',
-                         allowEmptyArchive: true
+        archiveArtifacts artifacts: 'dependency-check-report/**',
+                 allowEmptyArchive: true
     }
     success {
         echo '✅ Pipeline completed successfully — secure build ready!'
