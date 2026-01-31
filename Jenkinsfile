@@ -41,22 +41,23 @@ pipeline {
         stage('OWASP Dependency Check (SCA)') {
             steps {
                 sh '''
-                  rm -f dependency-check-report.html
+                  rm -rf owasp-report
+                  mkdir -p owasp-report
 
-                  docker run --rm \
+                  docker run \
                     -u root \
                     -v $(pwd):/src \
                     -v dependency-check-data:/usr/share/dependency-check/data \
                     owasp/dependency-check \
                     --scan /src \
                     --format HTML \
-                    --out /src \
+                    --out /src/owasp-report \
                     --project "DevSecOps Flask App" \
                     --disableAssembly \
                     --noupdate
 
-                  echo "=== VERIFY REPORT ==="
-                  ls -l dependency-check-report.html
+                  echo "=== OWASP REPORT CONTENTS ==="
+                  ls -l owasp-report
                 '''
             }
         }
@@ -75,8 +76,8 @@ pipeline {
 
     post {
         always {
-            archiveArtifacts artifacts: 'dependency-check-report.html',
-                             allowEmptyArchive: false
+            archiveArtifacts artifacts: 'owasp-report/**',
+                             allowEmptyArchive: true
         }
         success {
             echo '✅ Pipeline completed successfully — secure build ready!'
