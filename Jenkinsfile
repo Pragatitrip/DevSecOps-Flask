@@ -2,7 +2,6 @@ pipeline {
     agent any
 
     environment {
-        SONAR_HOST_URL = "http://host.docker.internal:9000"
         IMAGE_NAME = "devsecops-flask-app"
     }
 
@@ -20,21 +19,32 @@ pipeline {
                 SONAR_TOKEN = credentials('sonar-token')
             }
             steps {
-                sh '''
-                  docker run --rm \
-                    -v $(pwd):/usr/src \
-                    sonarsource/sonar-scanner-cli \
-                    -Dsonar.projectKey=devsecops-flask \
-                    -Dsonar.sources=. \
-                    -Dsonar.host.url=${SONAR_HOST_URL} \
-                    -Dsonar.login=$SONAR_TOKEN
-                '''
+                withSonarQubeEnv('SonarQube') {
+                    sh '''
+                      docker run --rm \
+                        -v $(pwd):/usr/src \
+                        sonarsource/sonar-scanner-cli \
+                        -Dsonar.projectKey=devsecops-flask \
+                        -Dsonar.sources=. \
+                        -Dsonar.login=$SONAR_TOKEN
+                    '''
+                }
+            }
+        }
+
+        stage('SonarQube Quality Gate') {
+            steps {
+                timeout(time: 2, unit: 'MINUTES') {
+                    waitForQualityGate abortPipeline: true
+                }
             }
         }
 
         stage('Build Docker Image') {
             steps {
-                sh 'docker build -t ${IMAGE_NAME} ./app'
+                sh '''
+                  docker build -t ${IMAGE_NAME} ./app
+                '''
             }
         }
 
@@ -44,8 +54,7 @@ pipeline {
                   rm -rf owasp-report
                   mkdir -p owasp-report
 
-                  docker run \
-                    -u root \
+                  docker run --rm -u root \
                     -v $(pwd):/src \
                     -v dependency-check-data:/usr/share/dependency-check/data \
                     owasp/dependency-check \
@@ -55,9 +64,6 @@ pipeline {
                     --project "DevSecOps Flask App" \
                     --disableAssembly \
                     --noupdate
-
-                  echo "=== OWASP REPORT CONTENTS ==="
-                  ls -l owasp-report
                 '''
             }
         }
@@ -83,7 +89,7 @@ pipeline {
             echo '✅ Pipeline completed successfully — secure build ready!'
         }
         failure {
-            echo '❌ Pipeline failed due to security issues!'
+            echo '❌ Pipeline failed due to Quality Gate or security issues!'
         }
     }
 }
