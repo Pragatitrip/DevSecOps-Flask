@@ -76,7 +76,7 @@ pipeline {
    post {
     always {
         archiveArtifacts artifacts: 'dependency-check-report/**',
-                 allowEmptyArchive: true
+                         allowEmptyArchive: true
     }
     success {
         echo '✅ Pipeline completed successfully — secure build ready!'
@@ -85,6 +85,3 @@ pipeline {
         echo '❌ Pipeline failed due to security issues!'
     }
 }
-
-}
-
