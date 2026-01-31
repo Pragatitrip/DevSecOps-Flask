@@ -54,7 +54,7 @@ pipeline {
             owasp/dependency-check \
             --scan /src \
             --format HTML \
-            --out /src/dependency-check-report \
+            --out /src \
             --project "DevSecOps Flask App" \
             --disableAssembly \
             --noupdate
