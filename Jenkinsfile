@@ -3,7 +3,6 @@ pipeline {
 
     environment {
         IMAGE_NAME = "devsecops-flask-app"
-        SONAR_HOST_URL = "http://host.docker.internal:9000"
     }
 
     stages {
@@ -20,15 +19,14 @@ pipeline {
                 SONAR_TOKEN = credentials('sonar-token')
             }
             steps {
-                sh '''
-                  docker run --rm \
-                    -v $(pwd):/usr/src \
-                    sonarsource/sonar-scanner-cli \
-                    -Dsonar.projectKey=devsecops-flask \
-                    -Dsonar.sources=. \
-                    -Dsonar.host.url=${SONAR_HOST_URL} \
-                    -Dsonar.login=$SONAR_TOKEN
-                '''
+                withSonarQubeEnv('SonarQube') {
+                    sh '''
+                      sonar-scanner \
+                        -Dsonar.projectKey=devsecops-flask \
+                        -Dsonar.sources=. \
+                        -Dsonar.login=$SONAR_TOKEN
+                    '''
+                }
             }
         }
 
