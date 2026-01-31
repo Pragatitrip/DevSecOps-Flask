@@ -41,21 +41,29 @@ pipeline {
         }
 
         stage('OWASP Dependency Check (SCA)') {
-            steps {
-                sh '''
-                  mkdir -p dependency-check-report
-                  docker run --rm \
-                    -v $(pwd):/src \
-                    -v dependency-check-data:/usr/share/dependency-check/data \
-                    owasp/dependency-check \
-                    --scan /src \
-                    --format HTML \
-                    --out /src/dependency-check-report \
-                    --disableAssembly \
-                    --noupdate || true
-                '''
-            }
-        }
+    steps {
+        sh '''
+          rm -rf dependency-check-report
+          mkdir -p dependency-check-report
+          chmod -R 777 dependency-check-report
+
+          docker run --rm \
+            -u root \
+            -v $(pwd):/src \
+            -v dependency-check-data:/usr/share/dependency-check/data \
+            owasp/dependency-check \
+            --scan /src \
+            --format HTML \
+            --out /src/dependency-check-report \
+            --project "DevSecOps Flask App" \
+            --disableAssembly \
+            --noupdate
+
+          echo "==== REPORT FILES ===="
+          ls -l dependency-check-report
+        '''
+    }
+}
 
         stage('Trivy Image Scan') {
             steps {
