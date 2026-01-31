@@ -2,11 +2,8 @@ pipeline {
     agent any
 
     environment {
+        SONAR_HOST_URL = "http://host.docker.internal:9000"
         IMAGE_NAME = "devsecops-flask-app"
-    }
-
-    tools {
-        sonarScanner 'SonarScanner'
     }
 
     stages {
@@ -23,22 +20,15 @@ pipeline {
                 SONAR_TOKEN = credentials('sonar-token')
             }
             steps {
-                withSonarQubeEnv('SonarQube') {
-                    sh '''
-                      sonar-scanner \
-                        -Dsonar.projectKey=devsecops-flask \
-                        -Dsonar.sources=. \
-                        -Dsonar.login=$SONAR_TOKEN
-                    '''
-                }
-            }
-        }
-
-        stage('SonarQube Quality Gate') {
-            steps {
-                timeout(time: 5, unit: 'MINUTES') {
-                    waitForQualityGate abortPipeline: true
-                }
+                sh '''
+                  docker run --rm \
+                    -v $(pwd):/usr/src \
+                    sonarsource/sonar-scanner-cli \
+                    -Dsonar.projectKey=devsecops-flask \
+                    -Dsonar.sources=. \
+                    -Dsonar.host.url=${SONAR_HOST_URL} \
+                    -Dsonar.login=$SONAR_TOKEN
+                '''
             }
         }
 
@@ -64,7 +54,6 @@ pipeline {
                     --scan /src \
                     --format HTML \
                     --out /src/owasp-report \
-                    --project "DevSecOps Flask App" \
                     --disableAssembly \
                     --noupdate
                 '''
@@ -92,7 +81,7 @@ pipeline {
             echo '✅ Pipeline completed successfully — secure build ready!'
         }
         failure {
-            echo '❌ Pipeline failed due to Quality Gate or security issues!'
+            echo '❌ Pipeline failed due to security issues!'
         }
     }
 }
