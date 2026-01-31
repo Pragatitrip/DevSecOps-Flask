@@ -34,18 +34,14 @@ pipeline {
 
         stage('Build Docker Image') {
             steps {
-                sh '''
-                  docker build -t ${IMAGE_NAME} ./app
-                '''
+                sh 'docker build -t ${IMAGE_NAME} ./app'
             }
         }
 
         stage('OWASP Dependency Check (SCA)') {
             steps {
                 sh '''
-                  rm -rf dependency-check-report
-                  mkdir -p dependency-check-report
-                  chmod -R 777 dependency-check-report
+                  rm -f dependency-check-report.html
 
                   docker run --rm \
                     -u root \
@@ -54,13 +50,13 @@ pipeline {
                     owasp/dependency-check \
                     --scan /src \
                     --format HTML \
-                    --out /src/dependency-check-report \
+                    --out /src \
                     --project "DevSecOps Flask App" \
                     --disableAssembly \
                     --noupdate
 
-                  echo "==== OWASP REPORT FILES ===="
-                  ls -l dependency-check-report
+                  echo "=== VERIFY REPORT ==="
+                  ls -l dependency-check-report.html
                 '''
             }
         }
@@ -79,7 +75,7 @@ pipeline {
 
     post {
         always {
-            archiveArtifacts artifacts: 'dependency-check-report/*.html',
+            archiveArtifacts artifacts: 'dependency-check-report.html',
                              allowEmptyArchive: false
         }
         success {
