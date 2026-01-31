@@ -41,29 +41,29 @@ pipeline {
         }
 
         stage('OWASP Dependency Check (SCA)') {
-    steps {
-        sh '''
-          rm -rf dependency-check-report
-          mkdir -p dependency-check-report
-          chmod -R 777 dependency-check-report
+            steps {
+                sh '''
+                  rm -rf dependency-check-report
+                  mkdir -p dependency-check-report
+                  chmod -R 777 dependency-check-report
 
-          docker run --rm \
-            -u root \
-            -v $(pwd):/src \
-            -v dependency-check-data:/usr/share/dependency-check/data \
-            owasp/dependency-check \
-            --scan /src \
-            --format HTML \
-            --out /src \
-            --project "DevSecOps Flask App" \
-            --disableAssembly \
-            --noupdate
+                  docker run --rm \
+                    -u root \
+                    -v $(pwd):/src \
+                    -v dependency-check-data:/usr/share/dependency-check/data \
+                    owasp/dependency-check \
+                    --scan /src \
+                    --format HTML \
+                    --out /src/dependency-check-report \
+                    --project "DevSecOps Flask App" \
+                    --disableAssembly \
+                    --noupdate
 
-          echo "==== REPORT FILES ===="
-          ls -l dependency-check-report
-        '''
-    }
-}
+                  echo "==== OWASP REPORT FILES ===="
+                  ls -l dependency-check-report
+                '''
+            }
+        }
 
         stage('Trivy Image Scan') {
             steps {
@@ -79,8 +79,8 @@ pipeline {
 
     post {
         always {
-            archiveArtifacts artifacts: 'dependency-check-report/**',
-                             allowEmptyArchive: true
+            archiveArtifacts artifacts: 'dependency-check-report/*.html',
+                             allowEmptyArchive: false
         }
         success {
             echo '✅ Pipeline completed successfully — secure build ready!'
