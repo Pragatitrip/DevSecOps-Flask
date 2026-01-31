@@ -71,7 +71,10 @@ pipeline {
 
     post {
         always {
-            archiveArtifacts artifacts: 'dependency-check-report/*.html', fingerprint: true
+            archiveArtifacts artifacts: 'dependency-check-report/*.html',
+                 fingerprint: true,
+                 allowEmptyArchive: true
+
         }
         success {
             echo "✅ Pipeline completed successfully — secure build ready!"
